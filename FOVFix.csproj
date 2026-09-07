@@ -4,59 +4,134 @@
     <TargetFramework>netstandard2.1</TargetFramework>
     <AssemblyName>FOVFix</AssemblyName>
     <Description>Fixes EFT FOV (removes FOV decrease when ADS)</Description>
-    <Version>4.0.1</Version>
+    <Version>4.1.0</Version>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <LangVersion>latest</LangVersion>
-	  <OutDir>F:\SP EFT\SPT-406\BepInEx\plugins\</OutDir>
-	  <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
-	  <CopyProjectReferencesToOutputDirectory>false</CopyProjectReferencesToOutputDirectory>
+    <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
+    <CopyProjectReferencesToOutputDirectory>false</CopyProjectReferencesToOutputDirectory>
+
+    <OutputPath>bin\$(Configuration)\</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
   </PropertyGroup>
 
-	<Target Name="Build Cleanup" AfterTargets="Build">
-		<Delete Files="$(OutDir)$(AssemblyName).pdb" />
-		<Delete Files="$(OutDir)$(AssemblyName).deps.json" />
-	</Target>
+  <!--
+    Every reference used to be a bare <Reference Include="..."/> with no HintPath, resolved
+    only because OutDir pointed straight into one machine's plugins folder
+    (F:\SP EFT\SPT-406\BepInEx\plugins\) and MSBuild happens to search OutDir. A clone
+    anywhere else silently failed to resolve any of them. SptRoot replaces that and can be
+    overridden with -p:SptRoot=... or an SptRoot environment variable.
+  -->
+  <PropertyGroup>
+    <SptRoot Condition=" '$(SptRoot)' == '' ">E:\SPT 4.1</SptRoot>
+    <SptManaged>$(SptRoot)\EscapeFromTarkov_Data\Managed</SptManaged>
+    <SptBepInEx>$(SptRoot)\BepInEx</SptBepInEx>
+  </PropertyGroup>
 
-	<ItemGroup>
-    <Reference Include="spt-reflection">
+  <!--
+    Realism Mod is a real compile-time dependency: RealismCompat.cs names its types
+    directly. It ships in different places depending on how it was installed, so probe the
+    two known layouts and let -p:RealismModPath=... override.
+  -->
+  <PropertyGroup>
+    <RealismModPath Condition=" '$(RealismModPath)' == '' And Exists('$(SptBepInEx)\plugins\RealismMod.dll') ">$(SptBepInEx)\plugins\RealismMod.dll</RealismModPath>
+    <RealismModPath Condition=" '$(RealismModPath)' == '' And Exists('$(SptBepInEx)\plugins\RealismMod\RealismMod.dll') ">$(SptBepInEx)\plugins\RealismMod\RealismMod.dll</RealismModPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      BepInEx used to come from the BepInEx.Core NuGet package on nuget.bepinex.dev. That
+      feed is not reachable from every network, and the install already has the exact
+      assemblies the game will load, so reference those instead. NuGet.Config went with it.
+    -->
+    <Reference Include="BepInEx">
+      <HintPath>$(SptBepInEx)\core\BepInEx.dll</HintPath>
       <Private>false</Private>
     </Reference>
-	<Reference Include="ItemComponent.Types">
-	  <Private>false</Private>
-	</Reference>
-    <Reference Include="Comfort">
+    <Reference Include="0Harmony">
+      <HintPath>$(SptBepInEx)\core\0Harmony.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="spt-reflection">
+      <HintPath>$(SptBepInEx)\plugins\spt\spt-reflection.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="RealismMod">
+      <HintPath>$(RealismModPath)</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="Assembly-CSharp">
+      <HintPath>$(SptManaged)\Assembly-CSharp.dll</HintPath>
       <Private>false</Private>
     </Reference>
-	<Reference Include="UnityEngine">
-	  <Private>false</Private>
-	</Reference>
-    <Reference Include="UnityEngine.InputLegacyModule">
+    <Reference Include="ItemComponent.Types">
+      <HintPath>$(SptManaged)\ItemComponent.Types.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Comfort">
+      <HintPath>$(SptManaged)\Comfort.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Sirenix.Serialization">
+      <HintPath>$(SptManaged)\Sirenix.Serialization.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Unity.Postprocessing.Runtime">
+      <HintPath>$(SptManaged)\Unity.Postprocessing.Runtime.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine">
+      <HintPath>$(SptManaged)\UnityEngine.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="UnityEngine.CoreModule">
+      <HintPath>$(SptManaged)\UnityEngine.CoreModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
-	<Reference Include="UnityEngine.UIModule">
-	  <Private>false</Private>
-	</Reference>
-	<Reference Include="Sirenix.Serialization">
-	  <Private>false</Private>
-	</Reference>
-	<Reference Include="RealismMod">
-	  <Private>false</Private>
-	</Reference>
-	<Reference Include="Unity.Postprocessing.Runtime">
-	  <Private>false</Private>
-	</Reference>
-    <PackageReference Include="BepInEx.Analyzers" Version="1.*" PrivateAssets="all" />
-    <PackageReference Include="BepInEx.Core" Version="5.*" />
-    <PackageReference Include="BepInEx.PluginInfoProps" Version="1.*" />
+    <Reference Include="UnityEngine.InputLegacyModule">
+      <HintPath>$(SptManaged)\UnityEngine.InputLegacyModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.UIModule">
+      <HintPath>$(SptManaged)\UnityEngine.UIModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
   </ItemGroup>
-  
-  <ItemGroup Condition="'$(TargetFramework.TrimEnd(`0123456789`))' == 'net'">
-    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.2" PrivateAssets="all" />
-  </ItemGroup>
+
+  <!--
+    Fail with the reason rather than with a wall of "type or namespace not found".
+  -->
+  <Target Name="EnsureSptRoot" BeforeTargets="BeforeBuild;ResolveAssemblyReferences">
+    <Error Condition="!Exists('$(SptManaged)\Assembly-CSharp.dll')"
+           Text="SptRoot '$(SptRoot)' does not look like an SPT install (missing EscapeFromTarkov_Data\Managed\Assembly-CSharp.dll). Pass -p:SptRoot=... or set the SptRoot environment variable." />
+    <Error Condition="'$(RealismModPath)' == '' Or !Exists('$(RealismModPath)')"
+           Text="RealismMod.dll not found. RealismCompat.cs references Realism Mod types directly, so it has to be installed to build. Looked in '$(SptBepInEx)\plugins\RealismMod.dll' and '$(SptBepInEx)\plugins\RealismMod\RealismMod.dll'; pass -p:RealismModPath=... to point somewhere else." />
+  </Target>
+
+  <Target Name="CopyToSPT" AfterTargets="Build" Condition="Exists('$(SptRoot)')">
+    <MakeDir Directories="$(SptBepInEx)\plugins" />
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(SptBepInEx)\plugins" />
+  </Target>
+
+  <!--
+    The zip must NOT live inside the directory being zipped. ZipDirectory archives the
+    CONTENTS of SourceDirectory, so the staged tree has to be the folder holding BepInEx\
+    for the archive to unpack over an SPT install - and pointing DestinationFile at that
+    same folder makes the task read the file it is currently writing (MSB3931, "file is in
+    use by another process" - the other process being this one). Staging one level down
+    fixes it.
+  -->
+  <PropertyGroup>
+    <ReleaseDir>$(ProjectDir)Release</ReleaseDir>
+    <ReleaseStagingDir>$(ReleaseDir)\staging</ReleaseStagingDir>
+  </PropertyGroup>
+
+  <Target Name="PackageRelease" AfterTargets="CopyToSPT">
+    <RemoveDir Directories="$(ReleaseStagingDir)" />
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(ReleaseStagingDir)\BepInEx\plugins" />
+    <ZipDirectory SourceDirectory="$(ReleaseStagingDir)"
+                  DestinationFile="$(ReleaseDir)\FOVFix.zip"
+                  Overwrite="true" />
+    <Message Text="Release zip: $(ReleaseDir)\FOVFix.zip" Importance="high" />
+  </Target>
+
 </Project>

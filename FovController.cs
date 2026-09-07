@@ -2,6 +2,8 @@
 using Comfort.Common;
 using EFT;
 using EFT.Animations;
+using EFT.CameraControl;
+using EFT.Settings;
 using EFT.InventoryLogic;
 using EFT.UI;
 using RealismMod;
@@ -125,7 +127,9 @@ namespace FOVFix
             var pwa = _player.ProceduralWeaponAnimation;
             var fc = _player.HandsController as FirearmController;
 
-            float baseFOV = _player.ProceduralWeaponAnimation.Single_2;
+            // Was ProceduralWeaponAnimation.Single_2, a name derived from its own return type and
+            // so a rename candidate on 4.1. The property is a one-line wrapper over exactly this.
+            float baseFOV = Singleton<SettingsManager>.Instance.Game.Settings.FieldOfView.Value;
             int aimIndex = _player.ProceduralWeaponAnimation.AimIndex;
             float toggleZoomMulti = 1f;
             float magnificationModifier = 1f;
@@ -145,7 +149,7 @@ namespace FOVFix
             }
 
             float zoom = baseFOV * magnificationModifier * toggleZoomMulti;
-            CameraClass.Instance.SetFov(zoom, 1f, !pwa.IsAiming);
+            CameraManager.Instance.SetFov(zoom, 1f, !pwa.IsAiming);
             _wasAiming = pwa.IsAiming;
         }
 
@@ -218,7 +222,7 @@ namespace FOVFix
 
         public void UpateScopeFOV()
         {
-            if (CameraClass.Instance?.OpticCameraManager?.Camera != null) CurrentScopeFOV = CameraClass.Instance.OpticCameraManager.Camera.fieldOfView;
+            if (CameraManager.Instance?.OpticCameraManager?.Camera != null) CurrentScopeFOV = CameraManager.Instance.OpticCameraManager.Camera.fieldOfView;
         }
 
 
