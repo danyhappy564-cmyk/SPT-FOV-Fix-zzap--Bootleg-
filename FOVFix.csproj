@@ -27,16 +27,6 @@
     <SptBepInEx>$(SptRoot)\BepInEx</SptBepInEx>
   </PropertyGroup>
 
-  <!--
-    Realism Mod is a real compile-time dependency: RealismCompat.cs names its types
-    directly. It ships in different places depending on how it was installed, so probe the
-    two known layouts and let -p:RealismModPath=... override.
-  -->
-  <PropertyGroup>
-    <RealismModPath Condition=" '$(RealismModPath)' == '' And Exists('$(SptBepInEx)\plugins\RealismMod.dll') ">$(SptBepInEx)\plugins\RealismMod.dll</RealismModPath>
-    <RealismModPath Condition=" '$(RealismModPath)' == '' And Exists('$(SptBepInEx)\plugins\RealismMod\RealismMod.dll') ">$(SptBepInEx)\plugins\RealismMod\RealismMod.dll</RealismModPath>
-  </PropertyGroup>
-
   <ItemGroup>
     <!--
       BepInEx used to come from the BepInEx.Core NuGet package on nuget.bepinex.dev. That
@@ -51,12 +41,15 @@
       <HintPath>$(SptBepInEx)\core\0Harmony.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <!--
+      Realism Mod is deliberately NOT referenced. It used to be, which made it a build
+      dependency of a plugin that is designed to run without it - no RealismMod.dll on the
+      build machine meant no build at all. RealismCompat reads its statics reflectively
+      instead, so one build covers both cases and the integration switches itself on if
+      Realism is ever installed.
+    -->
     <Reference Include="spt-reflection">
       <HintPath>$(SptBepInEx)\plugins\spt\spt-reflection.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
-    <Reference Include="RealismMod">
-      <HintPath>$(RealismModPath)</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="Assembly-CSharp">
@@ -103,8 +96,6 @@
   <Target Name="EnsureSptRoot" BeforeTargets="BeforeBuild;ResolveAssemblyReferences">
     <Error Condition="!Exists('$(SptManaged)\Assembly-CSharp.dll')"
            Text="SptRoot '$(SptRoot)' does not look like an SPT install (missing EscapeFromTarkov_Data\Managed\Assembly-CSharp.dll). Pass -p:SptRoot=... or set the SptRoot environment variable." />
-    <Error Condition="'$(RealismModPath)' == '' Or !Exists('$(RealismModPath)')"
-           Text="RealismMod.dll not found. RealismCompat.cs references Realism Mod types directly, so it has to be installed to build. Looked in '$(SptBepInEx)\plugins\RealismMod.dll' and '$(SptBepInEx)\plugins\RealismMod\RealismMod.dll'; pass -p:RealismModPath=... to point somewhere else." />
   </Target>
 
   <Target Name="CopyToSPT" AfterTargets="Build" Condition="Exists('$(SptRoot)')">

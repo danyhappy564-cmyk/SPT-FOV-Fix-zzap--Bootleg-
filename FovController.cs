@@ -6,7 +6,6 @@ using EFT.CameraControl;
 using EFT.Settings;
 using EFT.InventoryLogic;
 using EFT.UI;
-using RealismMod;
 using System;
 using System.Collections.Generic;
 using System.Linq;
