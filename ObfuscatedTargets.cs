@@ -63,13 +63,11 @@ namespace FOVFix
                 {
                     _cameraRecoil = (Action<ProceduralWeaponAnimation, float>)Delegate.CreateDelegate(
                         typeof(Action<ProceduralWeaponAnimation, float>), target);
-                    Utils.Logger.LogInfo($"FOVFix: camera recoil -> ProceduralWeaponAnimation.{target.Name}");
                 }
                 else
                 {
                     Utils.Logger.LogError(
-                        "FOVFix: could not find ProceduralWeaponAnimation's camera recoil method. " +
-                        "Camera recoil will not be applied while aiming.");
+                        "FOVFix: camera recoil will not be applied while aiming.");
                 }
             }
 
@@ -145,7 +143,15 @@ namespace FOVFix
 
         private static MethodInfo Report(List<MethodInfo> candidates, string what, string ownerName)
         {
-            if (candidates.Count == 1) return candidates[0];
+            if (candidates.Count == 1)
+            {
+                // Log what each fingerprint actually landed on. On a client this mod has not
+                // seen, these three lines are the difference between "it works" and knowing
+                // why - and the names themselves say whether the match was sensible.
+                MethodInfo hit = candidates[0];
+                Utils.Logger.LogInfo($"FOVFix: {what} -> {hit.DeclaringType.Name}.{hit.Name}");
+                return hit;
+            }
 
             // Zero means the shape moved; more than one means the fingerprint stopped being
             // unique. Either way, picking something would patch the game at a point nobody
