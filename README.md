@@ -49,8 +49,18 @@ Realism Mod의 자세(stance) 기능과 연동됩니다.
 | `ProceduralWeaponAnimation.method_23(bool)` | 무기 파라미터 갱신 = 메인캠 FOV 설정 지점 | `void(bool)` 중 본문이 **`SetFov` 를 호출하는** 유일한 비-접근자 (다른 두 호출부는 `Sprint` 세터와 인자 2개짜리 `InitTransforms`) |
 | `GClass1085.Class1841.method_0(int)` | 기본 FOV를 50~75로 clamp하는 람다 | 설정 그룹의 중첩 타입 중 `int(int)` 이면서 본문이 **`MIN_FIELD_OF_VIEW`, `MAX_FIELD_OF_VIEW` 두 상수를 모두 로드**하는 메서드 (형제 람다는 5~100이라 구분됨) |
 
-세 지문 모두 4.0 어셈블리 메타데이터로 **타입 전체에서 유일함을 확인**했습니다.
-후보가 0개거나 2개 이상이면 **찍지 않고** 로그에 남기고 그 기능만 끕니다.
+세 지문 모두 4.0 어셈블리 메타데이터로 **타입 전체에서 유일함을 확인**했고, SPT 4.1
+실기에서도 셋 다 정상적으로 붙는 것을 확인했습니다. 후보가 0개거나 2개 이상이면
+**찍지 않고** 로그에 남기고 그 기능만 끕니다.
+
+> **4.1은 이 중 최소 하나를 실제로 리네임했습니다.** 인게임 로그:
+> ```
+> FOVFix: camera recoil -> ProceduralWeaponAnimation.AddHandRecoilRotateToCamera
+> ```
+> `method_19` 은 4.1에서 `AddHandRecoilRotateToCamera` 가 됐습니다. 이름이 지문이 노린
+> 동작(손 반동 회전을 카메라에 적용)과 정확히 일치합니다. 이건 "이름을 박아뒀으면
+> 나중에 위험했다" 수준이 아니라, **하드코딩된 `method_19` 로는 4.1에서 컴파일조차 되지
+> 않는** 자리였습니다 (패치 대상이 아니라 직접 호출부라서).
 
 `method_19` 는 매 프레임 호출되므로, 찾은 뒤 열린 델리게이트로 캐시해서 프레임마다
 리플렉션이 돌지 않게 했습니다.
@@ -116,8 +126,9 @@ dotnet build FOVFix.csproj -c Release -p:"SptRoot=D:\내 SPT 경로"
 | 지문 3개가 유일한지 | **확인** — 4.0 어셈블리 메타데이터로 타입 전체 검사 |
 | 4.1 형태 어셈블리로 전체 컴파일 | **통과** — 4.0 `Assembly-CSharp` 에 위 5개 리네임을 Cecil로 실제 적용한 DLL을 만들어 빌드 |
 | Realism Mod 없이 빌드 | **통과** — `RealismMod.dll` 이 아예 없는 상태에서 클린 빌드 확인 |
+| 실제 4.1 클라이언트에서 로드 | **확인** — 지문 3개 전부 해석 성공, 패치 부착됨 |
 | 실제 4.1 `Assembly-CSharp.dll` 로 컴파일 | **못 함** — 이 작업 환경에 4.1 클라이언트 어셈블리가 없습니다 |
-| 인게임 검증 | **안 함** |
+| 인게임 레이드 거동 검증 | **안 함** — 아래 "남아 있는 진짜 위험" 참고 |
 
 ### 남아 있는 진짜 위험 하나
 
@@ -144,10 +155,12 @@ dotnet build FOVFix.csproj -c Release -p:"SptRoot=D:\내 SPT 경로"
 
 ### 첫 실행 때 로그에서 확인할 것
 
+지문 3개가 각각 어디에 붙었는지 이름을 찍습니다:
+
 ```
 FOVFix: camera recoil -> ProceduralWeaponAnimation.<이름>
-Enabled patch PwaWeaponParamsPatch
-Enabled patch FovValuePatch
+FOVFix: weapon params update -> ProceduralWeaponAnimation.<이름>
+FOVFix: base FOV clamp -> <중첩 클래스>.<이름>
 ```
 
 `FOVFix: expected exactly one ... candidate` 나 `FOVFix: ... could not be applied` 가
