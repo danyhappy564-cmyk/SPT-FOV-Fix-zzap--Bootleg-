@@ -256,8 +256,12 @@ namespace FOVFix
                 if (Chainloader.PluginInfos.ContainsKey("RealismMod"))
                 {
                     Logger.LogWarning("=============================== Fov Fix: Realism Mod is loaded ===============================");
-                    RealismIsPresent = true;
                     Plugin.RealCompat = new RealismCompat();
+                    // RealismCompat reads Realism's statics reflectively now, so it can fail to
+                    // find them on a Realism version that moved something. Treat that exactly
+                    // like Realism not being installed rather than acting on half-read state.
+                    RealismIsPresent = Plugin.RealCompat.IsResolved;
+                    if (!RealismIsPresent) Plugin.RealCompat = null;
                 }
             }
         }

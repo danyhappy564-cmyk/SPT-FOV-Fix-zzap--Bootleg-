@@ -89,9 +89,13 @@ Realism Mod의 자세(stance) 기능과 연동됩니다.
 - BepInEx를 `nuget.bepinex.dev` 패키지 대신 **설치본의 DLL**에서 참조합니다. 그 피드는
   네트워크에 따라 아예 닿지 않고, 설치본에는 게임이 실제로 로드할 바로 그 어셈블리가
   이미 있습니다. `NuGet.Config` 도 같이 삭제
-- Realism Mod는 `RealismCompat.cs` 가 타입을 직접 부르는 **진짜 컴파일 의존성**입니다.
-  설치 위치 두 곳을 자동으로 찾고, 없으면 이유를 말하는 에러 하나로 실패합니다
-  (`-p:RealismModPath=...` 로 지정 가능)
+- **Realism Mod 컴파일 의존성 제거.** 원본은 `RealismCompat.cs` 가 Realism 타입을 직접
+  불러서, Realism이 **설치돼 있지 않으면 빌드 자체가 안 됐습니다.** 정작 플러그인은
+  Realism 없이도 멀쩡히 돌게 설계돼 있는데(`Chainloader` 로 런타임에 감지) 말이죠.
+  이제 `RealismCompat` 이 Realism의 static들을 리플렉션으로 읽습니다 — 빌드는 한 벌이면
+  되고, 나중에 Realism을 설치하면 연동이 알아서 켜집니다. Realism 버전이 바뀌어 멤버를
+  못 찾으면 "Realism 없음"과 동일하게 처리하고 로그를 남깁니다 (반쯤 읽은 자세 상태로
+  동작하지 않게)
 - 빌드 후 `BepInEx\plugins\` 로 복사 + 릴리스 zip 생성. zip은 압축 대상 폴더 **밖에**
   씁니다 (안에 쓰면 자기가 쓰는 파일을 읽으려 들어 MSB3931이 납니다)
 
@@ -111,6 +115,7 @@ dotnet build FOVFix.csproj -c Release -p:"SptRoot=D:\내 SPT 경로"
 | 타입 5개 대응 | **확인** — 위키 4.0→4.1 표, 소스의 식별자 562개 전수 대조 |
 | 지문 3개가 유일한지 | **확인** — 4.0 어셈블리 메타데이터로 타입 전체 검사 |
 | 4.1 형태 어셈블리로 전체 컴파일 | **통과** — 4.0 `Assembly-CSharp` 에 위 5개 리네임을 Cecil로 실제 적용한 DLL을 만들어 빌드 |
+| Realism Mod 없이 빌드 | **통과** — `RealismMod.dll` 이 아예 없는 상태에서 클린 빌드 확인 |
 | 실제 4.1 `Assembly-CSharp.dll` 로 컴파일 | **못 함** — 이 작업 환경에 4.1 클라이언트 어셈블리가 없습니다 |
 | 인게임 검증 | **안 함** |
 
