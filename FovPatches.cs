@@ -3,6 +3,8 @@ using EFT;
 using EFT.Animations;
 using EFT.CameraControl;
 using EFT.InventoryLogic;
+using EFT.Settings;
+using EFT.Settings.Game;
 using EFT.UI;
 using EFT.UI.Settings;
 using HarmonyLib;
@@ -12,13 +14,9 @@ using System;
 using System.Reflection;
 using UnityEngine;
 using static EFT.Player;
-using static GClass1085;
-//using FCSubClass = EFT.Player.FirearmController.GClass1780;
-// System.String EFT.Player/FirearmController/GClass????::SHELLPORT_TRANSFORM_NAME
-//using InputClass1 = Class1604;
-// EFT.IFirearmHandsController Class????::ifirearmHandsController_0
-//using InputClass2 = Class1579;
-using GameSettingsClass = GClass1085;
+// 4.0 needed "using static GClass1085" purely so the nested lambda cache class could be
+// named unqualified. The type has a real name now, so name the nested type through it.
+using GameSettingsClass = EFT.Settings.Game.GameSettingsGroup;
 
 namespace FOVFix
 {
@@ -27,9 +25,7 @@ namespace FOVFix
     {
         protected override MethodBase GetTargetMethod()
         {
-            return typeof(GClass3380).GetMethod("CloneItem", BindingFlags.Static | BindingFlags.Public)?.MakeGenericMethod(typeof(Item));
-            // IEnumerable<EFT.InventoryLogic.Item> GClass????::GetAllItemsFromGridItemCollectionNonAlloc(GClass2924, List<EFT.InventoryLogic.Item>)
-            // very good distinct name to search for
+            return typeof(ItemExtensions).GetMethod("CloneItem", BindingFlags.Static | BindingFlags.Public)?.MakeGenericMethod(typeof(Item));
         }
 
         [PatchPostfix]
@@ -129,19 +125,18 @@ namespace FOVFix
     {
         protected override MethodBase GetTargetMethod()
         {
-            return typeof(Class1841).GetMethod("method_0");
-            // subclass of this class: Bsg.GameSettings.GameSetting<Boolean> GClass????::StreamerModeEnabled
+            return ObfuscatedTargets.BaseFovClamp();
         }
 
         [PatchPostfix]
-        private static void PostFix(ref int __result, int x)
+        private static void PostFix(ref int __result, int __0)
         {
             if (Plugin.MinBaseFOV.Value > Plugin.MaxBaseFOV.Value)
             {
                 Plugin.MinBaseFOV.Value = 50;
                 Plugin.MaxBaseFOV.Value = 75;
             }
-            __result = Mathf.Clamp(x, Plugin.MinBaseFOV.Value, Plugin.MaxBaseFOV.Value);
+            __result = Mathf.Clamp(__0, Plugin.MinBaseFOV.Value, Plugin.MaxBaseFOV.Value);
         }
     }
 
@@ -322,7 +317,7 @@ namespace FOVFix
             Vector3 ____vCameraTarget, Player.ValueBlenderDelay ____tacticalReload,
             Quaternion ____cameraIdenity, Quaternion ____rotationOffset, Vector2 ____cameraShiftToLineOfSight,
             float ____lineOfSightDeltaAngle, Vector3 ____shotDirection, bool ____adjustCollimatorsToTrajectory,
-            Transform ____bone0, Transform ____bone1)
+            Transform ____bone0, Transform ____bone1, float ____leftStanceCurrentCurveValue)
         {
             FirearmController firearmController = (FirearmController)_fcField.GetValue(__instance);
             if (firearmController == null) return true;
@@ -340,14 +335,17 @@ namespace FOVFix
                 bool isOptic = __instance.CurrentScope.IsOptic;
                 float collsionCameraSpeed = !realismIsNull ? Plugin.RealCompat.CameraMovmentForCollisionSpeed : 1f;
                 bool isRealLeftShoulder = !realismIsNull && Plugin.RealCompat.IsLeftShoulder;
-                bool isDoingLeftShoulder = isRealLeftShoulder || __instance.Boolean_0;  //boolean_0 detects if in BSG's left stance
+                // Was __instance.Boolean_0, a name derived from its own return type and so a rename
+                // candidate on 4.1. The property is a one-line wrapper over this field, and
+                // _leftStanceCurrentCurveValue is a real name the deobfuscator leaves alone.
+                bool isDoingLeftShoulder = isRealLeftShoulder || ____leftStanceCurrentCurveValue > 0f;  //detects if in BSG's left stance
                 bool canMoveGunToCamera = !realismIsNull && (isAltPistol || isAltRifle); 
                 float leftShoulderZOffset = GetLeftShoulderZoffset(canMoveGunToCamera, isPistol, isAltPistol, isDoingLeftShoulder);
 
                 _collsionCameraSpeed = isColliding ? 0f : Mathf.Lerp(_collsionCameraSpeed, 1f, collsionCameraSpeed);
                 if (!realismIsNull) DoStanceSmoothing(isAltPistol);
 
-                float headBob = Singleton<SharedGameSettingsClass>.Instance.Game.Settings.HeadBobbing;
+                float headBob = Singleton<SettingsManager>.Instance.Game.Settings.HeadBobbing;
                 Vector3 localPosition = __instance.HandsContainer.CameraTransform.localPosition;
                 float localX = localPosition.x;
                 float localY = localPosition.y;
@@ -403,7 +401,7 @@ namespace FOVFix
                 __instance.HandsContainer.CameraTransform.localPosition = new Vector3(newLocalPosition.x, _yPos, newLocalPosition.z);
                 Quaternion animatedRotation = __instance.HandsContainer.CameraAnimatedFP.localRotation * __instance.HandsContainer.CameraAnimatedTP.localRotation;
                 __instance.HandsContainer.CameraTransform.localRotation = Quaternion.Lerp(____cameraIdenity, animatedRotation, headBob * (1f - ____tacticalReload.Value)) * Quaternion.Euler(__instance.HandsContainer.CameraRotation.Get() + ____headRotationVec) * ____rotationOffset;
-                __instance.method_19(dt);
+                ObfuscatedTargets.ApplyCameraRecoil(__instance, dt);
                 __instance.HandsContainer.CameraTransform.localEulerAngles += __instance.Shootingg.CurrentRecoilEffect.GetCameraRotationRecoil();
 
                 //hud fov
@@ -425,7 +423,7 @@ namespace FOVFix
         {
             playerField = AccessTools.Field(typeof(FirearmController), "_player");
             fcField = AccessTools.Field(typeof(ProceduralWeaponAnimation), "_firearmController");
-            return typeof(EFT.Animations.ProceduralWeaponAnimation).GetMethod("method_23", BindingFlags.Instance | BindingFlags.Public);
+            return ObfuscatedTargets.WeaponParamsUpdate();
         }
 
         [PatchPostfix]
@@ -470,7 +468,7 @@ namespace FOVFix
             
             if (player != null)
             {
-                player.CalculateScaleValueByFov(CameraClass.Instance.Fov);
+                player.CalculateScaleValueByFov(CameraManager.Instance.Fov);
                 player.SetCompensationScale(true);
             }
         }

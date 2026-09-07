@@ -2,6 +2,8 @@
 using BepInEx.Bootstrap;
 using BepInEx.Configuration;
 using EFT;
+using SPT.Reflection.Patching;
+using System;
 using UnityEngine;
 
 namespace FOVFix
@@ -215,16 +217,35 @@ namespace FOVFix
             Utils.Logger = Logger;  
             FovController = new FovController();
 
-            new PwaWeaponParamsPatch().Enable();
-            new FreeLookPatch().Enable();
-            new LerpCameraPatch().Enable();
-            new FovRangePatch().Enable();
-            new FovValuePatch().Enable();
-            new AimingSensitivityPatch().Enable();
-            new ScopeSensitivityPatch().Enable();
-            new CloneItemPatch().Enable();
-            new SetPlayerAimingPatch().Enable();
-            new CalculateScaleValueByFovPatch().Enable();
+            Enable(new PwaWeaponParamsPatch());
+            Enable(new FreeLookPatch());
+            Enable(new LerpCameraPatch());
+            Enable(new FovRangePatch());
+            Enable(new FovValuePatch());
+            Enable(new AimingSensitivityPatch());
+            Enable(new ScopeSensitivityPatch());
+            Enable(new CloneItemPatch());
+            Enable(new SetPlayerAimingPatch());
+            Enable(new CalculateScaleValueByFovPatch());
+        }
+
+        /// <summary>
+        /// ModulePatch.Enable throws when GetTargetMethod returns null, and these calls used to
+        /// run bare and in a row - so one target the mod could not find took Awake down with it
+        /// and silently cost you every patch after it. Two targets are now resolved by shape
+        /// rather than by name (see ObfuscatedTargets) and can legitimately come back empty on a
+        /// client this mod has not seen, so contain the failure to the one feature and name it.
+        /// </summary>
+        private void Enable(ModulePatch patch)
+        {
+            try
+            {
+                patch.Enable();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError($"FOVFix: {patch.GetType().Name} could not be applied, so that feature is off. {ex.Message}");
+            }
         }
 
         private void CheckForMods()
