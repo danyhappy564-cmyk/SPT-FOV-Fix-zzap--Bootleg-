@@ -10,92 +10,23 @@ using HarmonyLib;
 namespace FOVFix
 {
     /// <summary>
-    /// Finds the three game methods this mod hooks that have no name it can spell on SPT 4.1.
+    /// Finds the one game method this mod hooks that has no name it can safely spell on SPT 4.1.
     ///
-    /// 4.1 deobfuscates the client, and "method" is one of the prefixes the SPT assembly tool
-    /// rewrites. Types got a published old-to-new mapping table; members did not, because the
-    /// tool derives member names by matching signatures against a real-named reference
-    /// assembly while it builds and keeps no table of the result. Worse, that match is a
-    /// heuristic: it renames some members and leaves others alone, and which is which changes
-    /// per EFT build. So a hardcoded "method_23" is not merely wrong-if-renamed, it is
-    /// wrong-in-a-way-that-still-compiles-and-silently-patches-the-wrong-method if a later
-    /// build renumbers.
+    /// The first 4.1 port resolved three targets here by the shape of their bodies, because
+    /// 4.1 deobfuscates the client and published no member mapping. Two of them now have real
+    /// 4.1 names that upstream uses as well and that exist in the 4.1 Assembly-CSharp:
+    /// method_19 -> AddHandRecoilRotateToCamera, method_23 -> OnAimOrPoseChanged. They are
+    /// called and patched by those names (compile-time checked) in FovPatches.
     ///
-    /// Each target below is instead identified by something the deobfuscator cannot change:
-    /// the shape of its body.
+    /// The FOV clamp stays here: it is a compiler-generated lambda on a cached display class,
+    /// a name that shifts if BSG so much as adds a lambda to that file, so it is identified by
+    /// something no rename can change - the shape of its body.
     /// </summary>
     internal static class ObfuscatedTargets
     {
         private const BindingFlags Declared = BindingFlags.Instance | BindingFlags.Static
                                             | BindingFlags.Public | BindingFlags.NonPublic
                                             | BindingFlags.DeclaredOnly;
-
-        // ------------------------------------------------------------------ camera recoil
-
-        private static Action<ProceduralWeaponAnimation, float> _cameraRecoil;
-        private static bool _cameraRecoilResolved;
-
-        /// <summary>
-        /// 4.0 name: ProceduralWeaponAnimation.method_19(float). LerpCamera calls it to apply
-        /// the per-frame camera recoil rotation, and this mod's LerpCamera replacement has to
-        /// call it too or recoil stops moving the camera.
-        ///
-        /// It is one of eleven `void (float)` methods on the type, but the only one that is
-        /// mostly quaternion work - it declares twelve Quaternion locals where the next
-        /// highest declares one. Resolved once and held as an open delegate, because this
-        /// runs every frame and reflection per frame is not free.
-        /// </summary>
-        internal static void ApplyCameraRecoil(ProceduralWeaponAnimation pwa, float deltaTime)
-        {
-            if (!_cameraRecoilResolved)
-            {
-                _cameraRecoilResolved = true;
-
-                MethodInfo target = Single(
-                    typeof(ProceduralWeaponAnimation),
-                    m => !m.IsStatic
-                      && m.ReturnType == typeof(void)
-                      && HasParameters(m, typeof(float))
-                      && CountLocalsOfType(m, "Quaternion") >= 4,
-                    "camera recoil");
-
-                if (target != null)
-                {
-                    _cameraRecoil = (Action<ProceduralWeaponAnimation, float>)Delegate.CreateDelegate(
-                        typeof(Action<ProceduralWeaponAnimation, float>), target);
-                }
-                else
-                {
-                    Utils.Logger.LogError(
-                        "FOVFix: camera recoil will not be applied while aiming.");
-                }
-            }
-
-            _cameraRecoil?.Invoke(pwa, deltaTime);
-        }
-
-        // ------------------------------------------------------- weapon params / FOV update
-
-        /// <summary>
-        /// 4.0 name: ProceduralWeaponAnimation.method_23(bool forced = false). Runs when the
-        /// weapon's animation parameters are refreshed, which is where the game sets the main
-        /// camera FOV - so it is where this mod learns the current weapon and re-applies its
-        /// own FOV.
-        ///
-        /// Of the `void (bool)` methods on the type it is the only non-accessor whose body
-        /// calls SetFov; the other two SetFov callers are the Sprint setter (an accessor) and
-        /// InitTransforms (two parameters).
-        /// </summary>
-        internal static MethodBase WeaponParamsUpdate()
-        {
-            return Single(
-                typeof(ProceduralWeaponAnimation),
-                m => !m.IsStatic
-                  && m.ReturnType == typeof(void)
-                  && HasParameters(m, typeof(bool))
-                  && BodyCallsMethodNamed(m, "SetFov"),
-                "weapon params update");
-        }
 
         // --------------------------------------------------------------- base FOV clamp
 
@@ -131,16 +62,6 @@ namespace FOVFix
 
         // ------------------------------------------------------------------------ plumbing
 
-        private static MethodInfo Single(Type owner, Func<MethodInfo, bool> matches, string what)
-        {
-            var candidates = owner.GetMethods(Declared)
-                .Where(m => !m.IsAbstract && !m.IsGenericMethodDefinition && !m.IsSpecialName)
-                .Where(m => { try { return matches(m); } catch { return false; } })
-                .ToList();
-
-            return Report(candidates, what, owner.Name);
-        }
-
         private static MethodInfo Report(List<MethodInfo> candidates, string what, string ownerName)
         {
             if (candidates.Count == 1)
@@ -170,25 +91,6 @@ namespace FOVFix
             for (int i = 0; i < ps.Length; i++)
                 if (ps[i].ParameterType != types[i]) return false;
             return true;
-        }
-
-        private static int CountLocalsOfType(MethodBase m, string typeName)
-        {
-            MethodBody body;
-            try { body = m.GetMethodBody(); } catch { return 0; }
-            if (body == null) return 0;
-
-            int count = 0;
-            foreach (LocalVariableInfo local in body.LocalVariables)
-                if (local.LocalType != null && local.LocalType.Name == typeName) count++;
-            return count;
-        }
-
-        private static bool BodyCallsMethodNamed(MethodBase m, string calleeName)
-        {
-            foreach (var instruction in ReadBody(m))
-                if (instruction.Value is MethodBase callee && callee.Name == calleeName) return true;
-            return false;
         }
 
         private static bool BodyLoadsConstants(MethodBase m, params int[] wanted)

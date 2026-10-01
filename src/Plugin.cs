@@ -8,7 +8,7 @@ using UnityEngine;
 
 namespace FOVFix
 {
-    [BepInPlugin("com.fontaine.fovfix", "Fontaine-FOVFix", "4.0.1")]
+    [BepInPlugin("com.fontaine.fovfix", "Fontaine-FOVFix", "4.1.0")]
     public class Plugin : BaseUnityPlugin
     {
         private bool _detectedMods = false;
@@ -135,7 +135,7 @@ namespace FOVFix
          */
             CameraIncreaseOffset = Config.Bind(cameraPostiion, "Increase Camera Offset Key", new KeyboardShortcut(KeyCode.KeypadMultiply), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 60 }));
             CameraDecreaseOffset = Config.Bind(cameraPostiion, "Decrease Camera Offset Key", new KeyboardShortcut(KeyCode.KeypadDivide), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 60 }));
-            OpticPosOffset = Config.Bind<float>(cameraPostiion, "Optic Camera Distance Offset", -0.03f, new ConfigDescription("Distance Of The Camera To Optics When ADSed. Lower = Closer To Optic.", new AcceptableValueRange<float>(-0.2f, 0.2f), new ConfigurationManagerAttributes { Order = 1 }));
+            OpticPosOffset = Config.Bind<float>(cameraPostiion, "Optic Camera Distance Offset", -0.015f, new ConfigDescription("Distance Of The Camera To Optics When ADSed. Lower = Closer To Optic.", new AcceptableValueRange<float>(-0.2f, 0.2f), new ConfigurationManagerAttributes { Order = 1 }));
             NonOpticOffset = Config.Bind<float>(cameraPostiion, "Non-Optic Camera Distance Offset", -0.01f, new ConfigDescription("Distance Of The Camera To Sights When ADSed. Lower = Closer To Optic.", new AcceptableValueRange<float>(-0.2f, 0.2f), new ConfigurationManagerAttributes { Order = 2 }));
             PistolOffset = Config.Bind<float>(cameraPostiion, "Pistol Camera Distance Offset", 0f, new ConfigDescription("Distance Of The Camera To Sights When ADSed. Lower = Closer To Optic.", new AcceptableValueRange<float>(-0.2f, 0.2f), new ConfigurationManagerAttributes { Order = 3 }));
             RifleLeftShoulderOffset = Config.Bind<float>(cameraPostiion, "Rifle Left Shoulder Offset", 0f, new ConfigDescription("Distance Of The Camera To Sights When ADSed. Lower = Closer To Optic. Set Till Left Shoulder Offset Matches Right Shoulder, Will Depend On Your Set Up. Does Not Apply If Realism Stances Are Enabled.", new AcceptableValueRange<float>(-1.0f, 1.0f), new ConfigurationManagerAttributes { Order = 4 }));
@@ -198,11 +198,11 @@ namespace FOVFix
             {
                 if (EnableFovScaleFix.Value)
                 {
-                    CalculateScaleValueByFovPatch.UpdateRibcageScale(FovScale.Value);
+                    CalculateScaleValueByFovPatch.SetCompensationScale(FovScale.Value);
                 }
                 else
                 {
-                    CalculateScaleValueByFovPatch.RestoreScale();
+                    CalculateScaleValueByFovPatch.CalculateScaleValueByFov();
                 }
             };
             
@@ -210,7 +210,7 @@ namespace FOVFix
             {
                 if (EnableFovScaleFix.Value)
                 {
-                    CalculateScaleValueByFovPatch.UpdateRibcageScale(FovScale.Value);
+                    CalculateScaleValueByFovPatch.SetCompensationScale(FovScale.Value);
                 }
             };
             
@@ -232,7 +232,7 @@ namespace FOVFix
         /// <summary>
         /// ModulePatch.Enable throws when GetTargetMethod returns null, and these calls used to
         /// run bare and in a row - so one target the mod could not find took Awake down with it
-        /// and silently cost you every patch after it. Two targets are now resolved by shape
+        /// and silently cost you every patch after it. The base FOV clamp is resolved by shape
         /// rather than by name (see ObfuscatedTargets) and can legitimately come back empty on a
         /// client this mod has not seen, so contain the failure to the one feature and name it.
         /// </summary>
