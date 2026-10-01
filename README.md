@@ -16,6 +16,11 @@
 
 ## 변경 이력
 
+- 2026-10-01 20:27 — **Realism Mod 연동 완전 삭제.** Realism은 SPT 3.x 이후 업데이트가 끊겨서 더는
+  안 씁니다. `RealismCompat.cs`(Realism의 자세 상태를 읽어오던 파일)와 Realism을 찾는 코드를 지우고,
+  조준 카메라 계산(`LerpCamera`)에서 Realism 전용 분기(기관권총 보정, 어깨 견착 권총, 자세 전환
+  스무딩, 충돌 시 카메라 정지 등)를 걷어냈습니다. Realism 없이 쓸 때 원래 타던 경로만 남겨서
+  **게임 내 동작은 그대로**입니다.
 - 2026-10-01 20:30 — **원작 4.1.0 업데이트(`e3ece13`) 머지.** 가져온 것:
   ① 조준 중 카메라 반동 누락 수정 — 4.1 게임은 카메라 반동에 "무기 반동(`WeaponRecoilEffect`)"
   항목을 하나 더 더하는데, 우리 포트의 `LerpCamera`(조준 시 카메라 위치·회전을 매 프레임
@@ -41,7 +46,6 @@
 
 ADS할 때 FOV가 줄어드는 걸 없애고, 조준 카메라 위치·속도, 기본 FOV 범위(50~75 제한
 해제), 배율별 마우스 감도, 토글 줌 등을 F12에서 조절하게 해주는 플러그인입니다.
-Realism Mod의 자세(stance) 기능과 연동됩니다.
 
 현재 기준 **SPT 4.1**.
 
@@ -53,7 +57,7 @@ Realism Mod의 자세(stance) 기능과 연동됩니다.
 |---|---|---|
 | 고개 돌리기 각도(`Free Look Angle`) | F12 설정 추가 (0~100°) | **없음** — 바닐라처럼 좌우 50° 고정 |
 | 기본 FOV 선택 범위 | 30~120 고정 (설정 삭제) | F12 `Min/Max Base FOV`로 조절 (기본 30~110) |
-| Realism Mod 연동 | 코드가 주석 처리돼 **꺼져 있음** | 리플렉션으로 읽어서 Realism이 있으면 자동으로 켜짐, 없어도 빌드됨 |
+| Realism Mod 연동 | 코드는 남아 있고 연동만 주석 처리 | **완전 삭제** (관련 파일·분기 없음) |
 | FOV 제한 람다 찾기 | 컴파일러가 붙인 이름(`CG_Ctor.method_0`) | 본문 모양(50/75 상수를 쓰는 `int(int)`)으로 찾음 — 이름이 밀려도 안 깨짐 |
 | 패치 하나 실패 시 | `Awake`가 죽고 그 뒤 패치 전부 사라짐 | 그 기능 하나만 끄고 로그에 이름 남김 |
 | 빌드 설정 | 원작자 PC 경로(`F:\SP EFT\SPT-41X`) 하드코딩, `RealismMod.dll` 필요 | `SptRoot`(기본 `E:\SPT 4.1`), 플러그인 폴더 자동 복사 + 릴리스 zip |
@@ -120,13 +124,8 @@ Realism Mod의 자세(stance) 기능과 연동됩니다.
 - BepInEx를 `nuget.bepinex.dev` 패키지 대신 **설치본의 DLL**에서 참조합니다. 그 피드는
   네트워크에 따라 아예 닿지 않고, 설치본에는 게임이 실제로 로드할 바로 그 어셈블리가
   이미 있습니다. `NuGet.Config` 도 같이 삭제
-- **Realism Mod 컴파일 의존성 제거.** 원본은 `RealismCompat.cs` 가 Realism 타입을 직접
-  불러서, Realism이 **설치돼 있지 않으면 빌드 자체가 안 됐습니다.** 정작 플러그인은
-  Realism 없이도 멀쩡히 돌게 설계돼 있는데(`Chainloader` 로 런타임에 감지) 말이죠.
-  이제 `RealismCompat` 이 Realism의 static들을 리플렉션으로 읽습니다 — 빌드는 한 벌이면
-  되고, 나중에 Realism을 설치하면 연동이 알아서 켜집니다. Realism 버전이 바뀌어 멤버를
-  못 찾으면 "Realism 없음"과 동일하게 처리하고 로그를 남깁니다 (반쯤 읽은 자세 상태로
-  동작하지 않게)
+- **Realism Mod 연동 삭제.** 원본은 `RealismMod.dll`이 있어야 빌드됐는데, 연동 자체를
+  지웠으므로 이제 필요 없습니다
 - 빌드 후 `BepInEx\plugins\` 로 복사 + 릴리스 zip 생성. zip은 압축 대상 폴더 **밖에**
   씁니다 (안에 쓰면 자기가 쓰는 파일을 읽으려 들어 MSB3931이 납니다)
 
@@ -147,7 +146,6 @@ dotnet build FOVFix.csproj -c Release -p:"SptRoot=D:\내 SPT 경로"
 | 원작이 쓴 4.1 실명 멤버 존재 여부 | **확인** — `OnAimOrPoseChanged`, `AddHandRecoilRotateToCamera`, `InLeftStance`, `WeaponRecoilEffect`, `SetCompensationScale`, `ResetFovAdjustments`, `SetFovParams` |
 | `LerpCamera` 대체 코드 vs 4.1 원본 | **대조함** — 차이는 `WeaponRecoilEffect` 카메라 반동 1개였고 반영함 |
 | `Player.Look` 대체 코드 vs 4.1 원본 | **대조함** — 4.1 원본은 조준 중 자유시점 해제 시 FOV를 35(광학)/설정값-15로 바꾸는 블록이 추가됐는데, 그게 바로 이 모드가 없애려는 "ADS FOV 감소"라 원작과 동일하게 넣지 않음 |
-| Realism Mod 없이 빌드 | **통과** |
 | 인게임 레이드 거동 | **아직** — 사용자 확인 대기 |
 
 ### 손대지 않은 죽은 코드

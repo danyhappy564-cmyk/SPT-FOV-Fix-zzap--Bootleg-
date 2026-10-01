@@ -1,5 +1,4 @@
 ﻿using BepInEx;
-using BepInEx.Bootstrap;
 using BepInEx.Configuration;
 using EFT;
 using SPT.Reflection.Patching;
@@ -11,8 +10,6 @@ namespace FOVFix
     [BepInPlugin("com.fontaine.fovfix", "Fontaine-FOVFix", "4.1.0")]
     public class Plugin : BaseUnityPlugin
     {
-        private bool _detectedMods = false;
-        public static bool RealismIsPresent = false;
 
         public static ConfigEntry<float> test1 { get; set; }
         public static ConfigEntry<float> test2 { get; set; }
@@ -102,7 +99,6 @@ namespace FOVFix
         public static ConfigEntry<float> PistolCameraZOffset { get; set; }
 
         public static FovController FovController { get; set; }
-        public static RealismCompat RealCompat { get; set; } 
 
         private void Awake()
         {
@@ -138,8 +134,8 @@ namespace FOVFix
             OpticPosOffset = Config.Bind<float>(cameraPostiion, "Optic Camera Distance Offset", -0.015f, new ConfigDescription("Distance Of The Camera To Optics When ADSed. Lower = Closer To Optic.", new AcceptableValueRange<float>(-0.2f, 0.2f), new ConfigurationManagerAttributes { Order = 1 }));
             NonOpticOffset = Config.Bind<float>(cameraPostiion, "Non-Optic Camera Distance Offset", -0.01f, new ConfigDescription("Distance Of The Camera To Sights When ADSed. Lower = Closer To Optic.", new AcceptableValueRange<float>(-0.2f, 0.2f), new ConfigurationManagerAttributes { Order = 2 }));
             PistolOffset = Config.Bind<float>(cameraPostiion, "Pistol Camera Distance Offset", 0f, new ConfigDescription("Distance Of The Camera To Sights When ADSed. Lower = Closer To Optic.", new AcceptableValueRange<float>(-0.2f, 0.2f), new ConfigurationManagerAttributes { Order = 3 }));
-            RifleLeftShoulderOffset = Config.Bind<float>(cameraPostiion, "Rifle Left Shoulder Offset", 0f, new ConfigDescription("Distance Of The Camera To Sights When ADSed. Lower = Closer To Optic. Set Till Left Shoulder Offset Matches Right Shoulder, Will Depend On Your Set Up. Does Not Apply If Realism Stances Are Enabled.", new AcceptableValueRange<float>(-1.0f, 1.0f), new ConfigurationManagerAttributes { Order = 4 }));
-            PistolLeftShoulderOffset = Config.Bind<float>(cameraPostiion, "Pistol Left Shoulder Offset", 0f, new ConfigDescription("Distance Of The Camera To Sights When ADSed. Lower = Closer To Optic. Set Till Left Shoulder Offset Matches Right Shoulder, Will Depend On Your Set Up. Does Not Apply If Realism Stances Are Enabled.", new AcceptableValueRange<float>(-1.0f, 1.0f), new ConfigurationManagerAttributes { Order = 4 }));
+            RifleLeftShoulderOffset = Config.Bind<float>(cameraPostiion, "Rifle Left Shoulder Offset", 0f, new ConfigDescription("Distance Of The Camera To Sights When ADSed. Lower = Closer To Optic. Set Till Left Shoulder Offset Matches Right Shoulder, Will Depend On Your Set Up.", new AcceptableValueRange<float>(-1.0f, 1.0f), new ConfigurationManagerAttributes { Order = 4 }));
+            PistolLeftShoulderOffset = Config.Bind<float>(cameraPostiion, "Pistol Left Shoulder Offset", 0f, new ConfigDescription("Distance Of The Camera To Sights When ADSed. Lower = Closer To Optic. Set Till Left Shoulder Offset Matches Right Shoulder, Will Depend On Your Set Up.", new AcceptableValueRange<float>(-1.0f, 1.0f), new ConfigurationManagerAttributes { Order = 4 }));
 
             ToggleZoomKeybind = Config.Bind(toggleZoom, "Zoom Toggle", new KeyboardShortcut(KeyCode.M), new ConfigDescription("Toggle To Zoom.", null, new ConfigurationManagerAttributes { Order = 60 }));
             HoldToggleZoom = Config.Bind<bool>(toggleZoom, "Hold To Zoom", true, new ConfigDescription("Change Zoom To A Hold Keybind.", null, new ConfigurationManagerAttributes { Order = 50 }));
@@ -248,28 +244,8 @@ namespace FOVFix
             }
         }
 
-        private void CheckForMods()
-        {
-            if (!_detectedMods && (int)Time.time % 5 == 0)
-            {
-                _detectedMods = true;
-                if (Chainloader.PluginInfos.ContainsKey("RealismMod"))
-                {
-                    Logger.LogWarning("=============================== Fov Fix: Realism Mod is loaded ===============================");
-                    Plugin.RealCompat = new RealismCompat();
-                    // RealismCompat reads Realism's statics reflectively now, so it can fail to
-                    // find them on a Realism version that moved something. Treat that exactly
-                    // like Realism not being installed rather than acting on half-read state.
-                    RealismIsPresent = Plugin.RealCompat.IsResolved;
-                    if (!RealismIsPresent) Plugin.RealCompat = null;
-                }
-            }
-        }
-
         void Update()
         {
-            if (RealismIsPresent) Plugin.RealCompat.Update();
-            CheckForMods();
             FovController.ControllerUpdate();
         }
     }

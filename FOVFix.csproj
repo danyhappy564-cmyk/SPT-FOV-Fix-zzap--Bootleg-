@@ -41,13 +41,6 @@
       <HintPath>$(SptBepInEx)\core\0Harmony.dll</HintPath>
       <Private>false</Private>
     </Reference>
-    <!--
-      Realism Mod is deliberately NOT referenced. It used to be, which made it a build
-      dependency of a plugin that is designed to run without it - no RealismMod.dll on the
-      build machine meant no build at all. RealismCompat reads its statics reflectively
-      instead, so one build covers both cases and the integration switches itself on if
-      Realism is ever installed.
-    -->
     <Reference Include="spt-reflection">
       <HintPath>$(SptBepInEx)\plugins\spt\spt-reflection.dll</HintPath>
       <Private>false</Private>
