@@ -35,11 +35,4 @@ case "$AUTHOR_IDENT|$COMMITTER_IDENT" in
     ;;
 esac
 
-# GUESTBOOK.md 귀띔 (이 저장소 전용 — 2026-09-19 추가): 모든 세션이 커밋할 때마다
-# GUESTBOOK.md에 항목을 남기기로 돼 있다. 강제 차단은 아니고(무해한 커밋까지
-# 막으면 안 되니까) 놓쳤을 때 상기시키는 용도다.
-if ! git diff --cached --name-only | grep -qx 'GUESTBOOK.md'; then
-  echo "pre-commit 알림: 이 커밋에 GUESTBOOK.md 항목이 안 보입니다 — 방명록에 2~10줄 요약을 남기는 걸 잊지 마세요 (GUESTBOOK.md 참고)." >&2
-fi
-
 exit 0
