@@ -1,10 +1,10 @@
 ### ⚠️ IMPORTANT NOTICE / DISCLAIMER
 
-**Original Author:** Fontaine
-**Original Repository:** SPT-FOV-Fix
-**Original Link:** https://github.com/space-commits/SPT-FOV-Fix
-**License:** See upstream repository
-**This Port By:** R_F (danyhappy564-cmyk) — unofficial, AI-assisted port. Not affiliated with or endorsed by the original author.
+- **Original Author:** Fontaine
+- **Original Repository:** SPT-FOV-Fix
+- **Original Link:** https://github.com/space-commits/SPT-FOV-Fix
+- **License:** See upstream repository
+- **This Port By:** R_F (danyhappy564-cmyk) — unofficial, AI-assisted port. Not affiliated with or endorsed by the original author.
 
 1. **Reflection & Take-Downs:** I deeply reflect on the ECOT incident. As an AI-assisted "vibe coder," I will immediately delete files if the original authors ask.
 2. **No Re-Distribution:** These ported builds are unverified, temporary fixes. Please do NOT re-upload or share them anywhere else.
@@ -16,6 +16,7 @@
 
 ## 변경 이력
 
+- 2026-10-13 04:38 — README 맨 위 원작자 표기를 한 줄씩 나눠 보기 쉽게 정리 (내용 변화 없음)
 - 2026-10-01 20:27 — **Realism Mod 연동 완전 삭제.** Realism은 SPT 3.x 이후 업데이트가 끊겨서 더는
   안 씁니다. `RealismCompat.cs`(Realism의 자세 상태를 읽어오던 파일)와 Realism을 찾는 코드를 지우고,
   조준 카메라 계산(`LerpCamera`)에서 Realism 전용 분기(기관권총 보정, 어깨 견착 권총, 자세 전환
